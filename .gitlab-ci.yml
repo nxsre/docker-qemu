@@ -1,0 +1,35 @@
+variables:
+  DOCKER_DRIVER: overlay2
+
+stages:
+  - test
+  - prepare
+  - build
+
+check-git-status:
+  stage: test
+  image: alpine:latest
+  script:
+    - apk add --no-cache wget jq gawk bash git
+    - ./apply-templates.sh
+    - if [ -n "$(git status --short)" ]; then echo "Templates not applied. Run `./apply-templates.sh`. Exiting."; exit 1; fi
+
+generate-pipelines:
+  stage: prepare
+  image: python:alpine
+  script:
+    - pip install --no-cache-dir Jinja2
+    - .scripts/generate-pipeline.py > generated-pipeline.yml
+    - cat generated-pipeline.yml
+  artifacts:
+    paths:
+      - generated-pipeline.yml
+    expire_in: 5 mins
+
+child-pipeline:
+  stage: build
+  trigger:
+    include:
+      - artifact: generated-pipeline.yml
+        job: generate-pipelines
+    strategy: depend
