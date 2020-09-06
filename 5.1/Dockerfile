@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:buster-slim
+FROM ubuntu:focal
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ovmf \
@@ -28,7 +28,7 @@ RUN set -eux; \
 	savedAptMark="$(apt-mark showmanual)"; \
 	\
 	apt-get update; \
-	apt-get install -y --no-install-recommends \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 		ca-certificates \
 		gnupg dirmngr \
 		wget \
@@ -53,7 +53,10 @@ RUN set -eux; \
 		libnuma-dev \
 		libpixman-1-dev \
 		libpng-dev \
+		librbd-dev \
 		libseccomp-dev \
+		libspice-protocol-dev \
+		libspice-server-dev \
 		libssh-dev \
 		libusb-1.0-0-dev \
 		libusbredirparser-dev \
@@ -123,7 +126,9 @@ RUN set -eux; \
 		--enable-linux-user \
 		--enable-modules \
 		--enable-numa \
+		--enable-rbd \
 		--enable-seccomp \
+		--enable-spice \
 		--enable-system \
 		--enable-tools \
 		--enable-usb-redir \
@@ -136,7 +141,6 @@ RUN set -eux; \
 		--enable-vnc-png \
 		--enable-xen \
 		--enable-xfsctl \
-#		--enable-rbd \
 #		--enable-vde \
 	; \
 	make -j "$(nproc)"; \
@@ -150,11 +154,13 @@ RUN set -eux; \
 	find /usr/local -type f -executable -exec ldd '{}' ';' \
 		| awk '/=>/ { print $(NF-1) }' \
 		| sort -u \
+		| xargs -r basename -a \
 		| xargs -r dpkg-query --search \
 		| cut -d: -f1 \
 		| sort -u \
 		| xargs -r apt-mark manual \
 	; \
+	apt-mark manual librbd1; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	\
 # basic smoke test
