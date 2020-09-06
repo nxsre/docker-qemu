@@ -1,0 +1,67 @@
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_CERT_PATH: "/certs/client"
+  DOCKER_TLS: 'true'
+  DOCKER_HOST: tcp://docker:2376/
+  TARGET_PLATFORM: 'linux/amd64'
+
+stages:
+  - test
+  - publish
+
+.buildx-init:
+  image: ixdotai/docker-buildx-qemu:latest
+  services:
+    - docker:dind
+  before_script:
+    - export BUILDX_NAME="buildx-$(tr -cd '[:alnum:]' < /dev/urandom | fold -w6 | head -n1)"
+    - docker context create "${BUILDX_NAME}"
+    - update-binfmts --enable # Important: Ensures execution of other binary formats is enabled in the kernel
+    - docker buildx create --driver docker-container --name "${BUILDX_NAME}" --use "${BUILDX_NAME}"
+    - docker buildx inspect --bootstrap
+
+{% for version in versions %}
+build:{{ versions[version].version }}:
+  extends:
+    - .buildx-init
+  stage: test
+  except:
+    refs:
+    - master
+  script:
+    - |
+        docker buildx build \
+        --platform=${TARGET_PLATFORM} \
+        --progress=plain \
+        --load \
+        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
+        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}" \
+{%- if versions[version].get('latest') %}
+        --tag "${CI_REGISTRY_IMAGE}:latest" \
+{%- endif %}
+        {{ versions[version].major }}.{{ versions[version].minor }}/
+{% endfor %}
+
+{%- for version in versions %}
+publish:{{ versions[version].version }}:
+  extends:
+    - .buildx-init
+  stage: publish
+  only:
+    refs:
+    - master
+  script:
+    - mkdir -p ~/.docker
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+    - |
+        docker buildx build \
+        --platform=${TARGET_PLATFORM} \
+        --progress=plain \
+        --pull \
+        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
+        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}" \
+{%- if versions[version].get('latest') %}
+        --tag "${CI_REGISTRY_IMAGE}:latest" \
+{%- endif %}
+        --push {{ versions[version].major }}.{{ versions[version].minor }}/
+{% endfor %}
