@@ -135,7 +135,7 @@ RUN set -eux; \
 		--enable-vnc-png \
 		--enable-xen \
 		--enable-xfsctl \
-#		--enable-vde \
+		--extra-cflags="-O2 -pipe -fomit-frame-pointer" \
 	; \
 	make -j "$(nproc)"; \
 	make install; \

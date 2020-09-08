@@ -13,6 +13,8 @@ check-git-status:
     - apk add --no-cache wget jq gawk bash git
     - ./apply-templates.sh
     - if [ -n "$(git status --short)" ]; then echo "Templates not applied. Run `./apply-templates.sh`. Exiting."; exit 1; fi
+  only:
+    - merge_requests
 
 generate-pipelines:
   stage: prepare
@@ -25,6 +27,8 @@ generate-pipelines:
     paths:
       - generated-pipeline.yml
     expire_in: 5 mins
+  except:
+    - merge_requests
 
 child-pipeline:
   stage: build
@@ -33,3 +37,5 @@ child-pipeline:
       - artifact: generated-pipeline.yml
         job: generate-pipelines
     strategy: depend
+  except:
+    - merge_requests
