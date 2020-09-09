@@ -1,5 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay2
+  TARGET_PLATFORM: linux/amd64
 
 stages:
   - test
@@ -19,7 +20,7 @@ generate-pipelines:
   image: python:alpine
   script:
     - pip install --no-cache-dir Jinja2
-    - .scripts/generate-pipeline.py > generated-pipeline.yml
+    - .scripts/generate-pipeline.py -p ${TARGET_PLATFORM} > generated-pipeline.yml
     - cat generated-pipeline.yml
   artifacts:
     paths:

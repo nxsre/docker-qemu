@@ -3,7 +3,6 @@ variables:
   DOCKER_CERT_PATH: "/certs/client"
   DOCKER_TLS: 'true'
   DOCKER_HOST: tcp://docker:2376/
-  TARGET_PLATFORM: 'linux/amd64'
 
 stages:
   - test
@@ -27,13 +26,12 @@ build:{{ versions[version].version }}:
   stage: test
   except:
     refs:
-    - master
+      - master
   script:
     - |
         docker buildx build \
-        --platform=${TARGET_PLATFORM} \
+        --platform={{ target_platform }} \
         --progress=plain \
-        --load \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}" \
 {%- if versions[version].get('latest') %}
@@ -49,13 +47,13 @@ publish:{{ versions[version].version }}:
   stage: publish
   only:
     refs:
-    - master
+      - master
   script:
     - mkdir -p ~/.docker
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
     - |
         docker buildx build \
-        --platform=${TARGET_PLATFORM} \
+        --platform={{ target_platform }} \
         --progress=plain \
         --pull \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
