@@ -8,6 +8,7 @@ FROM ubuntu:focal
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		ovmf \
+		netcat \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY *.patch /qemu-patches/
@@ -48,19 +49,16 @@ RUN set -eux; \
 		libglib2.0-dev \
 		libiscsi-dev \
 		libjpeg-dev \
+		liblzo2-dev \
 		libncursesw5-dev \
 		libnfs-dev \
 		libnuma-dev \
 		libpixman-1-dev \
 		libpng-dev \
 		librbd-dev \
-		libseccomp-dev \
-		libspice-protocol-dev \
-		libspice-server-dev \
 		libssh-dev \
 		libusb-1.0-0-dev \
 		libusbredirparser-dev \
-		libxen-dev \
 		make \
 		pkg-config \
 		python \
@@ -94,6 +92,7 @@ RUN set -eux; \
 	\
 	./configure --help; \
 	./configure \
+		--extra-cflags="-O2 -pipe -fomit-frame-pointer" \
 		--target-list=' \
 # system targets
 # (https://sources.debian.org/src/qemu/stretch/debian/rules/#L57-L61, slimmed)
@@ -110,6 +109,7 @@ RUN set -eux; \
 		--disable-docs \
 		--disable-gtk --disable-vte \
 		--disable-sdl \
+		--disable-xen \
 		--enable-attr \
 		--enable-bzip2 \
 		--enable-cap-ng \
@@ -117,6 +117,7 @@ RUN set -eux; \
 		--enable-curses \
 		--enable-fdt \
 		--enable-gnutls \
+		--enable-guest-agent \
 		--enable-kvm \
 		--enable-libiscsi \
 		--enable-libnfs \
@@ -124,11 +125,10 @@ RUN set -eux; \
 		--enable-libusb \
 		--enable-linux-aio \
 		--enable-linux-user \
+		--enable-lzo \
 		--enable-modules \
 		--enable-numa \
 		--enable-rbd \
-		--enable-seccomp \
-		--enable-spice \
 		--enable-system \
 		--enable-tools \
 		--enable-usb-redir \
@@ -139,9 +139,7 @@ RUN set -eux; \
 		--enable-vnc \
 		--enable-vnc-jpeg \
 		--enable-vnc-png \
-		--enable-xen \
 		--enable-xfsctl \
-		--extra-cflags="-O2 -pipe -fomit-frame-pointer" \
 	; \
 	make -j "$(nproc)"; \
 	make install; \
@@ -161,15 +159,11 @@ RUN set -eux; \
 		| xargs -r apt-mark manual \
 	; \
 	apt-mark manual librbd1; \
-	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+	apt-mark manual libusbredirparser1; \
+	apt-get purge -y --auto-remove; \
 	\
 # basic smoke test
 	qemu-img --version
 
-STOPSIGNAL SIGHUP
-
-EXPOSE 22
-EXPOSE 5900
-
 COPY start-qemu /usr/local/bin/
-CMD ["start-qemu"]
+ENTRYPOINT ["/usr/local/bin/start-qemu"]

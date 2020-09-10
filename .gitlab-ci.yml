@@ -13,7 +13,7 @@ check-git-status:
   script:
     - apk add --no-cache wget jq gawk bash git
     - ./apply-templates.sh
-    - if [ -n "$(git status --short)" ]; then echo "Templates not applied. Run `./apply-templates.sh`. Exiting."; exit 1; fi
+    - if [ -n "$(git status --short)" ]; then echo "Templates not applied. Run './apply-templates.sh'. Exiting."; exit 1; fi
 
 generate-pipelines:
   stage: prepare
