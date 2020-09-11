@@ -4,12 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM ubuntu:focal
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		ovmf \
-		netcat \
-	&& rm -rf /var/lib/apt/lists/*
+FROM ubuntu:focal AS downloader
 
 COPY *.patch /qemu-patches/
 
@@ -25,9 +20,6 @@ ENV QEMU_VERSION 5.0.0
 ENV QEMU_URL https://download.qemu.org/qemu-5.0.0.tar.xz
 
 RUN set -eux; \
-	\
-	savedAptMark="$(apt-mark showmanual)"; \
-	\
 	apt-get update; \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 		ca-certificates \
@@ -36,7 +28,35 @@ RUN set -eux; \
 		xz-utils \
 		\
 		patch \
-		\
+	; \
+	tarball="$(basename "https://download.qemu.org/qemu-5.0.0.tar.xz")"; \
+	wget -O "$tarball.sig" "https://download.qemu.org/qemu-5.0.0.tar.xz.sig"; \
+	wget -O "$tarball" "https://download.qemu.org/qemu-5.0.0.tar.xz" --progress=dot:giga; \
+	\
+	export GNUPGHOME="$(mktemp -d)"; \
+	for key in $QEMU_KEYS; do \
+		gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
+	done; \
+	gpg --batch --verify "$tarball.sig" "$tarball"; \
+	\
+	mkdir /usr/src/qemu; \
+	tar -xf "$tarball" -C /usr/src/qemu --strip-components=1; \
+	\
+	cd /usr/src/qemu; \
+	\
+	for p in /qemu-patches/*.patch; do \
+		patch --strip 1 --input "$p"; \
+	done; \
+	ls -lashi /usr/src/qemu
+
+FROM ubuntu:focal AS builder
+
+COPY --from=downloader /usr/src/ /usr/src/
+
+RUN set -eux; \
+	cd /usr/src/qemu; \
+	apt-get update; \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 		bzip2 \
 		gcc \
 		gnutls-dev \
@@ -66,34 +86,9 @@ RUN set -eux; \
 		xfslibs-dev \
 		zlib1g-dev \
 	; \
-	rm -rf /var/lib/apt/lists/*; \
-	\
-	tarball="$(basename "$QEMU_URL")"; \
-	wget -O "$tarball.sig" "$QEMU_URL.sig"; \
-	wget -O "$tarball" "$QEMU_URL" --progress=dot:giga; \
-	\
-	export GNUPGHOME="$(mktemp -d)"; \
-	for key in $QEMU_KEYS; do \
-		gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
-	done; \
-	gpg --batch --verify "$tarball.sig" "$tarball"; \
-	gpgconf --kill all; \
-	rm -rf "$GNUPGHOME"; \
-	\
-	mkdir /usr/src/qemu; \
-	tar -xf "$tarball" -C /usr/src/qemu --strip-components=1; \
-	rm "$tarball" "$tarball.sig"; \
-	\
-	cd /usr/src/qemu; \
-	\
-	for p in /qemu-patches/*.patch; do \
-		patch --strip 1 --input "$p"; \
-	done; \
-	rm -rf /qemu-patches; \
-	\
 	./configure --help; \
 	CONFIGURE_EXTRA_OPTIONS=""; \
-	if [ "`echo $QEMU_VERSION | cut -c1-3`" = '5.1' ]; then \
+	if [ "`echo 5.0.0 | cut -c1-3`" = '5.1' ]; then \
 		export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none" ;\
 	fi; \
 	./configure \
@@ -105,8 +100,12 @@ RUN set -eux; \
 			sparc64-softmmu \
 		' \
 		--disable-docs \
-		--disable-gtk --disable-vte \
+		--disable-git-update \
+		--disable-gtk \
+		--disable-pvrdma \
+		--disable-qed \
 		--disable-sdl \
+		--disable-vte \
 		--disable-xen \
 		--enable-attr \
 		--enable-bzip2 \
@@ -144,25 +143,37 @@ RUN set -eux; \
 	make -j "$(nproc)"; \
 	make install; \
 	\
-	cd /; \
-	rm -rf /usr/src/qemu; \
-	\
-	apt-mark auto '.*' > /dev/null; \
-	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark > /dev/null; \
 	find /usr/local \
 		-type f \
 		\( -executable -o -name '*.so' \) \
+		-exec sh -c 'test "$(head -c 2 "$1")" != "#!"' sh '{}' ';' \
 		-exec ldd '{}' ';' \
 			| awk '/=>/ { print $(NF-1) }' \
 			| sort -u \
 			| xargs -r basename -a \
 			| xargs -r dpkg-query --search \
 			| cut -d: -f1 \
-			| sort -u \
-			| xargs -r apt-mark manual \
+			| sort -u > /usr/local/pkglist
+
+FROM ubuntu:focal
+
+COPY --from=builder /usr/local/ /usr/local/
+
+RUN set -eux; \
+	apt-get update; \
+	export DEBIAN_FRONTEND=noninteractive ;\
+	apt-get install -y --no-install-recommends \
+		ovmf \
+		netcat \
 	; \
-	apt-get purge -y --auto-remove; \
-	\
+	xargs --arg-file=/usr/local/pkglist apt-get install -y --no-install-recommends; \
+	rm -rf \
+		/var/lib/apt/lists/* \
+		/tmp/* \
+		/var/cache/* \
+		/var/tmp/* \
+		/var/log/* \
+	; \
 # basic smoke test
 	qemu-img --version
 

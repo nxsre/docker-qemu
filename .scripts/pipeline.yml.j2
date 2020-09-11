@@ -8,29 +8,29 @@ stages:
   - test
   - publish
 
-.buildx-init:
-  image: ixdotai/docker-buildx-qemu:latest
+.init:
+  image: docker:latest
   services:
     - docker:dind
-  before_script:
+  {# before_script:
     - export BUILDX_NAME="buildx-$(tr -cd '[:alnum:]' < /dev/urandom | fold -w6 | head -n1)"
     - docker context create "${BUILDX_NAME}"
     - update-binfmts --enable # Important: Ensures execution of other binary formats is enabled in the kernel
     - docker buildx create --driver docker-container --name "${BUILDX_NAME}" --use "${BUILDX_NAME}"
-    - docker buildx inspect --bootstrap
+    - docker buildx inspect --bootstrap #}
 
 {% for version in versions %}
 build:{{ versions[version].version }}:
   extends:
-    - .buildx-init
+    - .init
   stage: test
   except:
     refs:
       - master
   script:
+    - mkdir -p /cache
     - |
-        docker buildx build \
-        --platform={{ target_platform }} \
+        docker build \
         --progress=plain \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}" \
@@ -39,11 +39,12 @@ build:{{ versions[version].version }}:
 {%- endif %}
         {{ versions[version].major }}.{{ versions[version].minor }}/
 {% endfor %}
+{# --platform={{ target_platform }} \ #}
 
 {%- for version in versions %}
 publish:{{ versions[version].version }}:
   extends:
-    - .buildx-init
+    - .init
   stage: publish
   only:
     refs:
@@ -52,8 +53,7 @@ publish:{{ versions[version].version }}:
     - mkdir -p ~/.docker
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
     - |
-        docker buildx build \
-        --platform={{ target_platform }} \
+        docker build \
         --progress=plain \
         --pull \
         --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
@@ -63,3 +63,4 @@ publish:{{ versions[version].version }}:
 {%- endif %}
         --push {{ versions[version].major }}.{{ versions[version].minor }}/
 {% endfor %}
+{# --platform={{ target_platform }} \ #}
