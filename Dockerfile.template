@@ -50,6 +50,7 @@ RUN set -eux; \
 		libpixman-1-dev \
 		libpng-dev \
 		librbd-dev \
+		libseccomp-dev \
 		libssh-dev \
 		libusb-1.0-0-dev \
 		libusbredirparser-dev \
@@ -85,20 +86,17 @@ RUN set -eux; \
 	rm -rf /qemu-patches; \
 	\
 	./configure --help; \
+	CONFIGURE_EXTRA_OPTIONS=""; \
+	if [ "`echo $QEMU_VERSION | cut -c1-3`" = '5.1' ]; then \
+		export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none" ;\
+	fi; \
 	./configure \
 		--extra-cflags="-O2 -pipe -fomit-frame-pointer" \
 		--target-list=' \
 # system targets
-# (https://sources.debian.org/src/qemu/stretch/debian/rules/#L57-L61, slimmed)
-			i386-softmmu x86_64-softmmu aarch64-softmmu arm-softmmu m68k-softmmu \
+			i386-softmmu x86_64-softmmu aarch64-softmmu arm-softmmu \
 			mips64-softmmu mips64el-softmmu ppc64-softmmu \
-			sparc64-softmmu s390x-softmmu \
-# user targets
-# (https://sources.debian.org/src/qemu/stretch/debian/rules/#L81-L86, slimmed)
-			i386-linux-user x86_64-linux-user aarch64-linux-user arm-linux-user m68k-linux-user \
-			mips64-linux-user mips64el-linux-user \
-			ppc64-linux-user ppc64le-linux-user sparc64-linux-user \
-			s390x-linux-user \
+			sparc64-softmmu \
 		' \
 		--disable-docs \
 		--disable-gtk --disable-vte \
@@ -123,6 +121,7 @@ RUN set -eux; \
 		--enable-modules \
 		--enable-numa \
 		--enable-rbd \
+		--enable-seccomp \
 		--enable-system \
 		--enable-tools \
 		--enable-usb-redir \
@@ -134,6 +133,7 @@ RUN set -eux; \
 		--enable-vnc-jpeg \
 		--enable-vnc-png \
 		--enable-xfsctl \
+		$CONFIGURE_EXTRA_OPTIONS \
 	; \
 	make -j "$(nproc)"; \
 	make install; \
@@ -143,17 +143,18 @@ RUN set -eux; \
 	\
 	apt-mark auto '.*' > /dev/null; \
 	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark > /dev/null; \
-	find /usr/local -type f -executable -exec ldd '{}' ';' \
-		| awk '/=>/ { print $(NF-1) }' \
-		| sort -u \
-		| xargs -r basename -a \
-		| xargs -r dpkg-query --search \
-		| cut -d: -f1 \
-		| sort -u \
-		| xargs -r apt-mark manual \
+	find /usr/local \
+		-type f \
+		\( -executable -o -name '*.so' \) \
+		-exec ldd '{}' ';' \
+			| awk '/=>/ { print $(NF-1) }' \
+			| sort -u \
+			| xargs -r basename -a \
+			| xargs -r dpkg-query --search \
+			| cut -d: -f1 \
+			| sort -u \
+			| xargs -r apt-mark manual \
 	; \
-	apt-mark manual librbd1; \
-	apt-mark manual libusbredirparser1; \
 	apt-get purge -y --auto-remove; \
 	\
 # basic smoke test
