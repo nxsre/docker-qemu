@@ -36,5 +36,6 @@ for version; do
 		gawk -f "$jqt" Dockerfile.template
 	} > "$version/Dockerfile"
 
+	cp -a build "$version/"
 	cp -a start-qemu "$version/"
 done
