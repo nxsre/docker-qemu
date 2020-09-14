@@ -27,6 +27,9 @@ done
 
 gpg --batch --verify "${TARBALL}.sig" "${TARBALL}"
 
+gpgconf --kill all
+rm -rf "${GNUPGHOME}"
+
 mkdir -p /usr/src/qemu
 cd /usr/src/qemu
 tar -xf "${TARBALL}" -C . --strip-components=1
@@ -34,8 +37,8 @@ for p in /qemu-patches/*.patch; do \
   patch --strip 1 --input "$p"
 done
 
-wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add - 
-echo "deb https://download.ceph.com/debian-octopus $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list 
+wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
+echo "deb https://download.ceph.com/debian-octopus $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list
 
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -139,7 +142,7 @@ find /usr/local \
 apt-get install -y --no-install-recommends \
   ovmf \
   netcat
-  
+ 
 apt-get purge -y --auto-remove
 rm -rf \
   /usr/src/qemu \
@@ -151,6 +154,6 @@ rm -rf \
   /var/cache/* \
   /var/tmp/* \
   /var/log/*
-  
+ 
 # Basic test
 qemu-img --version
