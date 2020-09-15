@@ -1,12 +1,14 @@
-# tlex/docker-qemu
+# ix.ai/docker-qemu
 
 This is a fork of [tianon/docker-qemu](https://github.com/tianon/docker-qemu).
 
 Notable differences, beyond the automated build using GitLab CI:
 
-* Uses `ubuntu:focal` instead of `debian:buster-slim`
 * Adds support for RBD (CEPH) volumes
-* Adds support for SPICE
+* Drops the `user` targets
+* Drops `xen` support
+* Enables `rng-none` for QEMU >=5.1
+* Drops the signal patches, using QMP to gracefully shut down the VM on container stop
 
 ## Supported tags
 
@@ -19,7 +21,7 @@ Notable differences, beyond the automated build using GitLab CI:
 
 This image is hosted on registry.gitlab.com:
 ```
-registry.gitlab.com/tlex/docker-qemu:latest
+registry.gitlab.com/ix.ai/docker-qemu:latest
 ```
 
 ### Examples
@@ -29,38 +31,39 @@ Create a new RBD volume:
 sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
-  registry.gitlab.com/tlex/docker-qemu:latest \
+  --entrypoint "" \
+  registry.gitlab.com/ix.ai/docker-qemu:latest \
     qemu-img create -f raw rbd:rbd/desktop:id=qemu 100G
 ```
 
-Start an image with an RBD volume and QXL graphics driver:
+Start an image with an RBD volume, boot from the ISO:
 ```sh
 sudo docker run --rm -it \
   --device /dev/kvm \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   -v /docker/mini.iso:/tmp/mini.iso \
-  tianon/qemu:latest \
-        qemu-system-x86_64 \
-          -enable-kvm \
-          -smp 4 \
-          -m 8192 \
-          -boot order=d \
-          -device virtio-scsi-pci \
-          -drive format=rbd,file=rbd:rbd/desktop:id=qemu,id=drive1,cache=writeback,if=none \
-          -device driver=scsi-hd,drive=drive1,discard_granularity=512 \
-          -netdev user,hostname=desktop,hostfwd=tcp::22-:22,id=net \
-          -device virtio-net-pci,netdev=net \
-          -serial stdio \
-          -vnc :0 \
-          -no-user-config \
-          -cpu host \
-          -nodefaults \
-          -vga qxl \
-          -cdrom /tmp/mini.iso
+  registry.gitlab.com/ix.ai/docker-qemu:latest \
+    -enable-kvm \
+    -smp 4 \
+    -m 8192 \
+    -boot order=d \
+    -device virtio-scsi-pci \
+    -drive format=rbd,file=rbd:rbd/desktop:id=qemu,id=drive1,cache=writeback,if=none \
+    -device driver=scsi-hd,drive=drive1,discard_granularity=512 \
+    -netdev user,hostname=desktop,hostfwd=tcp::22-:22,id=net \
+    -device virtio-net-pci,netdev=net \
+    -serial stdio \
+    -vnc :0 \
+    -no-user-config \
+    -cpu host \
+    -nodefaults \
+    -vga virtio \
+    -cdrom /tmp/mini.iso
 ```
 
-The original `start-qemu` script is still included, from [tianon/docker-qemu](https://github.com/tianon/docker-qemu). Please read below for detail.
+Support for the original `start-qemu` script is still included, from [tianon/docker-qemu](https://github.com/tianon/docker-qemu). If no arguments are
+passed to the image, then the environment variables documented in [start-qemu](start-qemu) are used.
 
 ___
 
