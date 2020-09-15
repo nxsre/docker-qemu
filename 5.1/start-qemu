@@ -20,19 +20,34 @@
 #                              (default: output of `uname -m`)
 #   QEMU_MONPORT               the port for the QEMU Monitor (default: 7100)
 #   QEMU_MACHINE="xxxx"        override the QEMU default machine type
+#   QEMU_VARIABLES_FILE="xxx"  see below under 'create_file'
 
 hostArch="$(uname -m)"
 qemuArch="${QEMU_ARCH:-$hostArch}"
 qemu="${QEMU_BIN:-qemu-system-$qemuArch}"
 
-gracefulShutdown(){
+
+# create a file with the content of the QEMU_VARIABLES_FILE variable which
+# allows the folder to be exposed then in QEMU. Example:
+#
+#      -drive file=fat:rw:/folder,id=drive2,if=none
+#      -device driver=scsi-hd,drive=drive2
+create_file(){
+  if [ -z "${QEMU_VARIABLES_FILE:-}" ]; then
+    echo "Creating file /qemu/qemu-variables-file ..."
+    mkdir -p /qemu
+    echo "${QEMU_VARIABLES_FILE}" > /qemu/qemu-variables-file
+  fi
+}
+
+graceful_shutdown(){
   echo "Trying to shut down the VM gracefully"
   echo 'system_powerdown' | nc localhost ${QEMU_MONPORT:-7100}
   exit 0
 }
 
 # In case no CLI arguments were passed to the script, this function puts together some defaults
-initQemu(){
+init_qemu(){
   IFS=" " read -r -a qemuPorts <<< "${QEMU_PORTS:-}"
   if [ -z "${QEMU_NO_SSH:-}" ]; then
     qemuPorts+=( 22 )
@@ -120,13 +135,15 @@ initQemu(){
 
 CLI_ARGS="${*}"
 
-trap gracefulShutdown SIGINT SIGTERM SIGHUP
+trap graceful_shutdown SIGINT SIGTERM SIGHUP
 
 if [ $# -eq 0 ]; then
-  initQemu
+  init_qemu
 fi
 
 CLI_ARGS="${CLI_ARGS} -monitor telnet:localhost:${QEMU_MONPORT:-7100},server,nowait,nodelay"
+
+create_file
 
 set -x
 $qemu ${CLI_ARGS} &
