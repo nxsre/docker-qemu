@@ -120,7 +120,7 @@ initQemu(){
 
 CLI_ARGS="${*}"
 
-trap gracefulShutdown SIGTERM SIGINT
+trap gracefulShutdown SIGINT SIGTERM SIGHUP
 
 if [ $# -eq 0 ]; then
   initQemu
