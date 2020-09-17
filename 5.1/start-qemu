@@ -33,7 +33,7 @@ qemu="${QEMU_BIN:-qemu-system-$qemuArch}"
 #      -drive file=fat:rw:/folder,id=drive2,if=none
 #      -device driver=scsi-hd,drive=drive2
 create_file(){
-  if [ -n "${QEMU_VARIABLES_FILE:-}" ]; then
+  if [ -z "${QEMU_VARIABLES_FILE:-}" ]; then
     echo "Creating file /qemu/qemu-variables-file ..."
     mkdir -p /qemu
     echo "${QEMU_VARIABLES_FILE}" > /qemu/qemu-variables-file
