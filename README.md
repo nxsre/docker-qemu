@@ -62,6 +62,37 @@ sudo docker run --rm -it \
     -cdrom /tmp/mini.iso
 ```
 
+## Tips
+### Variable inside the VMs
+To add a string from outside the VM to be visible inside (for example, a host id), I'm using:
+```
+-smbios type=1,serial=alpine
+```
+
+I'm then reading this inside the VM with `dmidecode --string system-serial-number`
+
+For more details, see this [gist](https://gist.github.com/smoser/290f74c256c89cb3f3bd434a27b9f64c).
+
+### Mount a volume from the docker host inside the VM
+This is only possible by exposing a FAT drive.
+
+Let's say the volume on the docker host is `/files`.
+
+You need to add the following to the `docker run` command:
+```
+  -v /files:/files:rw \
+```
+
+And in the VM command:
+```
+    -drive file=fat:rw:/folder,id=drive2,if=none,format=raw \
+    -device driver=scsi-hd,drive=drive2 \
+```
+
+When you start your VM, you will see an additional drive - if you add it after the RBD one, it will be `sdb` in Linux.
+
+---
+
 Support for the original `start-qemu` script is still included, from [tianon/docker-qemu](https://github.com/tianon/docker-qemu). If no arguments are
 passed to the image, then the environment variables documented in [start-qemu](start-qemu) are used.
 
