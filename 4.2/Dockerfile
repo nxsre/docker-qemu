@@ -14,11 +14,10 @@ ENV QEMU_KEYS="CEACC9E15534EBABB82D3FA03353C9CEF108B584" \
 		QEMU_VERSION="4.2.1" \
 		QEMU_URL="https://download.qemu.org/qemu-4.2.1.tar.xz"
 
-COPY *.patch /qemu-patches/
+COPY Dockerfile *.patch /qemu-patches/
 
-COPY build /usr/local/bin/
+COPY build start-qemu /usr/local/bin/
 
 RUN /usr/local/bin/build
 
-COPY start-qemu /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/start-qemu"]
