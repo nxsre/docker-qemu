@@ -5,6 +5,8 @@ variables:
   DOCKER_HOST: tcp://docker:2376/
   DOCKER_DRIVER: overlay2
   BUILDKIT_INLINE_CACHE: '1'
+# Docker Hub
+  DOCKERHUB_REPO_NAME: 'qemu'
 
 stages:
   - test
@@ -15,13 +17,16 @@ stages:
   services:
     - docker:dind
   before_script:
+    - set -exu
     - update-binfmts --enable # Important: Ensures execution of other binary formats is enabled in the kernel
     - export BUILDX_NAME="buildx-$(tr -cd '[:alnum:]' < /dev/urandom | fold -w6 | head -n1)"
     - docker context create "${BUILDX_NAME}"
     - docker buildx create --name "${BUILDX_NAME}" --use "${BUILDX_NAME}"
     - docker buildx inspect --bootstrap
     - mkdir -p ~/.docker
+    - export DOCKERHUB_IMAGE="${DOCKERHUB_REPO_PREFIX}/${DOCKERHUB_REPO_NAME}"
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+    - echo "${DOCKERHUB_PASSWORD}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
 
 
 {% for version in versions %}
@@ -31,18 +36,20 @@ build:{{ versions[version].version }}:
   stage: test
   except:
     refs:
-      - master
+      - tags
   script:
+    - export TAG_PREFIX="master"
+    - if [ ! "${CI_COMMIT_REF_NAME}" == "master" ]; then export TAG_PREFIX="dev"; fi
     - |
-        set -exu; \
         docker buildx build \
         --platform={{ target_platform }} \
         --progress=plain \
         --pull \
         --push \
-        --cache-from=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
-        --cache-to=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
-        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}${CI_PIPELINE_ID}" \
+        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
+        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
+        --tag "${CI_REGISTRY_IMAGE}:${TAG_PREFIX}-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}" \
+        --tag "${DOCKERHUB_IMAGE}:${TAG_PREFIX}-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}" \
         {{ versions[version].major }}.{{ versions[version].minor }}/
 {% endfor %}
 
@@ -53,20 +60,30 @@ publish:{{ versions[version].version }}:
   stage: publish
   only:
     refs:
-      - master
+      - tags
   script:
+    - export QEMU_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
+    - export QEMU_SHORT_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}"
     - |
-        set -exu; \
         docker buildx build \
         --platform={{ target_platform }} \
         --progress=plain \
         --pull \
         --cache-from=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
         --cache-to=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
-        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}" \
-        --tag "${CI_REGISTRY_IMAGE}:{{ versions[version].major }}.{{ versions[version].minor }}" \
+        --tag "${CI_REGISTRY_IMAGE}:${QEMU_VERSION}" \
+        --tag "${CI_REGISTRY_IMAGE}:${QEMU_SHORT_VERSION}" \
+        --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_VERSION}" \
+        --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_SHORT_VERSION}" \
+        --tag "${DOCKERHUB_IMAGE}:${QEMU_VERSION}" \
+        --tag "${DOCKERHUB_IMAGE}:${QEMU_SHORT_VERSION}" \
+        --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_VERSION}" \
+        --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_SHORT_VERSION}" \
 {%- if versions[version].get('latest') %}
-        --tag "${CI_REGISTRY_IMAGE}:latest" \
+        --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}" \
+        --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}" \
+        --tag="${CI_REGISTRY_IMAGE}:latest" \
+        --tag="${DOCKERHUB_IMAGE}:latest" \
 {%- endif %}
         --push {{ versions[version].major }}.{{ versions[version].minor }}/
 {% endfor %}
