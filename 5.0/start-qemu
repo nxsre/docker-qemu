@@ -50,54 +50,54 @@ initQemu(){
   fi
 
   if [ -n "${QEMU_HDA:-}" ]; then
-	  if [ ! -f "$QEMU_HDA" ] || [ ! -s "$QEMU_HDA" ]; then
-	    (
-	      set -x
-	      qemu-img create -f qcow2 -o preallocation=off "$QEMU_HDA" "${QEMU_HDA_SIZE:-8G}"
-				set +x
-	    )
-	  fi
+    if [ ! -f "$QEMU_HDA" ] || [ ! -s "$QEMU_HDA" ]; then
+      (
+        set -x
+        qemu-img create -f qcow2 -o preallocation=off "$QEMU_HDA" "${QEMU_HDA_SIZE:-8G}"
+        set +x
+      )
+    fi
 
-	  # http://wiki.qemu.org/download/qemu-doc.html#Invocation
-	  qemuScsiDevice='virtio-scsi-pci'
-	  case "$qemuArch" in
-	    arm) qemuScsiDevice='virtio-scsi-device' ;;
-	  esac
+    # http://wiki.qemu.org/download/qemu-doc.html#Invocation
+    qemuScsiDevice='virtio-scsi-pci'
+    case "$qemuArch" in
+      arm) qemuScsiDevice='virtio-scsi-device' ;;
+    esac
 
-	  qemuArgs+=(
-	    -drive file="$QEMU_HDA",index=0,media=disk,discard=unmap,detect-zeroes=unmap,if=none,id=hda
-	    -device "$qemuScsiDevice"
-	    -device scsi-hd,drive=hda
-	  )
-	fi
+    qemuArgs+=(
+      -drive file="$QEMU_HDA",index=0,media=disk,discard=unmap,detect-zeroes=unmap,if=none,id=hda
+      -device "$qemuScsiDevice"
+      -device scsi-hd,drive=hda
+    )
+  fi
 
-	netArg="user,hostname=$(hostname)"
-	if [ -n "${QEMU_NET_USER_EXTRA:-}" ]; then
-	  netArg+=",$QEMU_NET_USER_EXTRA"
-	fi
-	for port in "${qemuPorts[@]}"; do
-	  netArg+=",hostfwd=tcp::$port-:$port"
-	  netArg+=",hostfwd=udp::$port-:$port"
-	done
+  netArg="user,hostname=$(hostname)"
+  if [ -n "${QEMU_NET_USER_EXTRA:-}" ]; then
+    netArg+=",$QEMU_NET_USER_EXTRA"
+  fi
+  for port in "${qemuPorts[@]}"; do
+    netArg+=",hostfwd=tcp::$port-:$port"
+    netArg+=",hostfwd=udp::$port-:$port"
+  done
 
-	qemuNetDevice='virtio-net-pci'
-	case "$qemuArch" in
-	  arm)
+  qemuNetDevice='virtio-net-pci'
+  case "$qemuArch" in
+    arm)
       qemuNetDevice='virtio-net-device'
       QEMU_MACHINE="${QEMU_MACHINE:-virt}"
       ;;
-	esac
+  esac
 
   if [ -n "${QEMU_MACHINE:-}" ]; then
     qemuArgs+=( -machine "$QEMU_MACHINE" )
   fi
 
-	qemuArgs+=(
+  qemuArgs+=(
     -smp "${QEMU_CPU:-1}"
     -m "${QEMU_RAM:-512}"
-	  -netdev "$netArg,id=net"
-	  -device "$qemuNetDevice,netdev=net"
-	)
+    -netdev "$netArg,id=net"
+    -device "$qemuNetDevice,netdev=net"
+  )
   
   if [ -n "${QEMU_CDROM:-}" ]; then
     qemuArgs+=( -cdrom "$QEMU_CDROM" )
@@ -107,15 +107,15 @@ initQemu(){
     qemuArgs+=( -boot "$QEMU_BOOT" )
   fi
 
-	if [ -z "${QEMU_NO_SERIAL:-}" ]; then
-	  qemuArgs+=( -serial stdio )
-	fi
+  if [ -z "${QEMU_NO_SERIAL:-}" ]; then
+    qemuArgs+=( -serial stdio )
+  fi
 
-	if [ -z "${QEMU_NO_VNC:-}" ]; then
-	  qemuArgs+=( -vnc ':0')
-	fi
+  if [ -z "${QEMU_NO_VNC:-}" ]; then
+    qemuArgs+=( -vnc ':0')
+  fi
 
-	CLI_ARGS="${qemuArgs[*]}"
+  CLI_ARGS="${qemuArgs[*]}"
 }
 
 CLI_ARGS="${*}"
