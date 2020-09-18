@@ -1,10 +1,17 @@
+[![Pipeline Status](https://gitlab.com/ix.ai/docker-qemu/badges/master/pipeline.svg)](https://gitlab.com/ix.ai/docker-qemu/)
+[![Docker Stars](https://img.shields.io/docker/stars/ixdotai/qemu.svg)](https://hub.docker.com/r/ixdotai/qemu/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/ixdotai/qemu.svg)](https://hub.docker.com/r/ixdotai/qemu/)
+[![Docker Image Version (latest)](https://img.shields.io/docker/v/ixdotai/qemu/latest)](https://hub.docker.com/r/ixdotai/qemu/)
+[![Docker Image Size (latest)](https://img.shields.io/docker/image-size/ixdotai/qemu/latest)](https://hub.docker.com/r/ixdotai/qemu/)
+[![Gitlab Project](https://img.shields.io/badge/GitLab-Project-554488.svg)](https://gitlab.com/ix.ai/docker-qemu/)
+
 # ix.ai/docker-qemu
 
 This is a fork of [tianon/docker-qemu](https://github.com/tianon/docker-qemu).
 
 Notable differences, beyond the automated build using GitLab CI:
 
-* Adds support for RBD (CEPH) volumes
+* Adds full support for RBD (CEPH) volumes - including libraries
 * Drops the `user` targets
 * Drops `xen` support
 * Enables `rng-none` for QEMU >=5.1
@@ -12,16 +19,22 @@ Notable differences, beyond the automated build using GitLab CI:
 
 ## Supported tags
 
-* `4.1.1`, `4.1`
-* `4.2.1`, `4.2`
-* `5.0.1`, `5.0`
-* `5.1.0`, `5.1`, `latest`
+* `v0.0.1-4.1.1`, `v0.0.1-4.1`, `4.1.1`, `4.1`
+* `v0.0.1-4.2.1`, `v0.0.1-4.2`, `4.2.1`, `4.2`
+* `v0.0.1-5.0.1`, `v0.0.1-5.0`, `5.0.1`, `5.0`
+* `v0.0.1-5.1.0`, `v0.0.1-5.1`, `5.1.0`, `5.1`, `v0.0.1`, `latest`
+
+The simple `N.N.N` tags refer to the QEMU versions.
 
 ## Usage
 
-This image is hosted on registry.gitlab.com:
+This image is hosted on registry.gitlab.com and on docker hub:
 ```
 registry.gitlab.com/ix.ai/docker-qemu:latest
+```
+
+```
+ixdotai/qemu:latest
 ```
 
 ### Examples
@@ -32,7 +45,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   --entrypoint "" \
-  registry.gitlab.com/ix.ai/docker-qemu:latest \
+  ixdotai/qemu:latest \
     qemu-img create -f raw rbd:rbd/desktop:id=qemu 100G
 ```
 
@@ -43,7 +56,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   -v /docker/mini.iso:/tmp/mini.iso \
-  registry.gitlab.com/ix.ai/docker-qemu:latest \
+  ixdotai/qemu:latest \
     -enable-kvm \
     -smp 4 \
     -m 8192 \

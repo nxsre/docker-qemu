@@ -6,6 +6,7 @@ stages:
   - test
   - prepare
   - build
+  - publish
 
 check-git-status:
   stage: test
@@ -34,3 +35,16 @@ child-pipeline:
       - artifact: generated-pipeline.yml
         job: generate-pipelines
     strategy: depend
+
+dockerhub:readme:
+  stage: publish
+  variables:
+    README_PATH: ${CI_PROJECT_DIR}/README.md
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "master" && $DOCKERHUB_REPO_NAME =~ /.+/ && $DOCKERHUB_PASSWORD =~ /.+/'
+      when: on_success
+  image:
+    name: sheogorath/readme-to-dockerhub:latest
+    entrypoint: ['']
+  script:
+    - node /app/index.js
