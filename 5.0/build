@@ -60,6 +60,8 @@ apt-get install -y --no-install-recommends \
   libpng-dev \
   librbd-dev \
   libseccomp-dev \
+  libspice-protocol-dev \
+  libspice-server-dev \
   libssh-dev \
   libusb-1.0-0-dev \
   libusbredirparser-dev \
@@ -107,6 +109,7 @@ fi
   --enable-numa \
   --enable-rbd \
   --enable-seccomp \
+  --enable-spice \
   --enable-system \
   --enable-tools \
   --enable-usb-redir \

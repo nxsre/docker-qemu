@@ -6,7 +6,7 @@
 
 FROM debian:stable-slim
 LABEL maintainer="git@alex.thom.ae" \
-      ai.ix.repository="gitlab.com/tlex/docker-qemu/"
+      ai.ix.repository="ix.ai/docker-qemu"
 
 # https://wiki.qemu.org/SecurityProcess
 # Michael Roth
