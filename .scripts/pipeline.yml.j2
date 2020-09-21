@@ -71,8 +71,8 @@ publish:{{ versions[version].version }}:
         --platform={{ target_platform }} \
         --progress=plain \
         --pull \
-        --cache-from=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
-        --cache-to=${CI_REGISTRY_IMAGE}:cache-{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }} \
+        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
+        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
         --tag "${CI_REGISTRY_IMAGE}:${QEMU_VERSION}" \
         --tag "${CI_REGISTRY_IMAGE}:${QEMU_SHORT_VERSION}" \
         --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_VERSION}" \
