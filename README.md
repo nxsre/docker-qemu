@@ -15,7 +15,7 @@ Notable differences, beyond the automated build using GitLab CI:
 * Drops the `user` targets
 * Drops `xen` support
 * Enables `rng-none` for QEMU >=5.1
-* Drops the signal patches, using QMP to gracefully shut down the VM on container stop
+* Drops the signal patches, using QMP to gracefully shut down the VM on container stop (with `system_powerdown`)
 
 ## Supported tags
 
@@ -74,6 +74,16 @@ sudo docker run --rm -it \
     -vga virtio \
     -cdrom /tmp/mini.iso
 ```
+
+## Global Variables
+The following variables are supported for all operations type:
+
+| **Variable**             | **Default**           | **Description**                                 |
+|:-------------------------|:---------------------:|:------------------------------------------------|
+| `QEMU_NO_QMP`            | -                     | Set this to anything to disable the QMP Monitor **and** graceful shutdown handling |
+| `QEMU_MONPORT`           | `7100`                | The port for the QMP Monitor |
+| `QEMU_POWERDOWN_TIMEOUT` | `120`                 | After this many seconds, the VM gets killed after a graceful shutdown command |
+| `QEMU_ARCH`              | output of `uname -m`  | Allows starting the VM with a different arch than the host. Supported: `i386`, `x86_64`, `aarch64`, `arm`, `mips64`, `mips64el`, `ppc64`, `sparc64` |
 
 ## Tips
 ### Variable inside the VMs
