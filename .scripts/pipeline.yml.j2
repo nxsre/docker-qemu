@@ -38,10 +38,14 @@ build:{{ versions[version].version }}:
     refs:
       - tags
   script:
-    - export TAG_PREFIX="master"
-    - if [ ! "${CI_COMMIT_REF_NAME}" == "master" ]; then export TAG_PREFIX="dev"; fi
     - export QEMU_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
     - export QEMU_SHORT_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}"
+    - |
+      if [ "${CI_COMMIT_REF_NAME}" == "master" ]; then \
+        export TAG="master-${QEMU_VERSION}"; \
+      else \
+        export TAG="dev-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}"; \
+      fi
     - |
         docker buildx build \
         --platform={{ target_platform }} \
@@ -50,8 +54,8 @@ build:{{ versions[version].version }}:
         --push \
         --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
         --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
-        --tag "${CI_REGISTRY_IMAGE}:${TAG_PREFIX}-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}" \
-        --tag "${DOCKERHUB_IMAGE}:${TAG_PREFIX}-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}" \
+        --tag "${CI_REGISTRY_IMAGE}:${TAG}" \
+        --tag "${DOCKERHUB_IMAGE}:${TAG}" \
         {{ versions[version].major }}.{{ versions[version].minor }}/
 {% endfor %}
 
