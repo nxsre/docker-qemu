@@ -38,13 +38,13 @@ build:{{ versions[version].version }}:
     refs:
       - tags
   script:
-    - export QEMU_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
+    - export QEMU_BUILD_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
     - export QEMU_SHORT_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}"
     - |
       if [ "${CI_COMMIT_REF_NAME}" == "master" ]; then \
-        export TAG="master-${QEMU_VERSION}"; \
+        export TAG="master-${QEMU_BUILD_VERSION}"; \
       else \
-        export TAG="dev-${QEMU_VERSION}-${CI_COMMIT_SHORT_SHA}"; \
+        export TAG="dev-${QEMU_BUILD_VERSION}-${CI_COMMIT_SHORT_SHA}"; \
       fi
     - |
         docker buildx build \
@@ -52,8 +52,8 @@ build:{{ versions[version].version }}:
         --progress=plain \
         --pull \
         --push \
-        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
-        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
+        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_BUILD_VERSION} \
+        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_BUILD_VERSION} \
         --tag "${CI_REGISTRY_IMAGE}:${TAG}" \
         --tag "${DOCKERHUB_IMAGE}:${TAG}" \
         {{ versions[version].major }}.{{ versions[version].minor }}/
@@ -68,22 +68,22 @@ publish:{{ versions[version].version }}:
     refs:
       - tags
   script:
-    - export QEMU_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
+    - export QEMU_BUILD_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}.{{ versions[version].patch }}"
     - export QEMU_SHORT_VERSION="{{ versions[version].major }}.{{ versions[version].minor }}"
     - |
         docker buildx build \
         --platform={{ target_platform }} \
         --progress=plain \
         --pull \
-        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
-        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_VERSION} \
-        --tag "${CI_REGISTRY_IMAGE}:${QEMU_VERSION}" \
+        --cache-from=${CI_REGISTRY_IMAGE}:cache-${QEMU_BUILD_VERSION} \
+        --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_BUILD_VERSION} \
+        --tag "${CI_REGISTRY_IMAGE}:${QEMU_BUILD_VERSION}" \
         --tag "${CI_REGISTRY_IMAGE}:${QEMU_SHORT_VERSION}" \
-        --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_VERSION}" \
+        --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_BUILD_VERSION}" \
         --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_SHORT_VERSION}" \
-        --tag "${DOCKERHUB_IMAGE}:${QEMU_VERSION}" \
+        --tag "${DOCKERHUB_IMAGE}:${QEMU_BUILD_VERSION}" \
         --tag "${DOCKERHUB_IMAGE}:${QEMU_SHORT_VERSION}" \
-        --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_VERSION}" \
+        --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_BUILD_VERSION}" \
         --tag="${DOCKERHUB_IMAGE}:${CI_COMMIT_REF_NAME}-${QEMU_SHORT_VERSION}" \
 {%- if versions[version].get('latest') %}
         --tag="${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}" \

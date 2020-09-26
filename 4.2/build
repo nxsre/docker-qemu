@@ -72,7 +72,7 @@ apt-get install -y --no-install-recommends \
   xfslibs-dev \
   zlib1g-dev
 
-if echo "${QEMU_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then \
+if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then \
   export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none"
 fi
 ./configure \
