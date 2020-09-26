@@ -1,11 +1,11 @@
 FROM debian:stable-slim
-LABEL maintainer="git@alex.thom.ae" \
+LABEL maintainer="docker@ix.ai" \
       ai.ix.repository="ix.ai/docker-qemu"
 
 # https://wiki.qemu.org/SecurityProcess
 # Michael Roth
 ENV QEMU_KEYS="CEACC9E15534EBABB82D3FA03353C9CEF108B584" \
-		QEMU_VERSION="{{ .version }}" \
+		QEMU_BUILD_VERSION="{{ .version }}" \
 		QEMU_URL="{{ .url }}"
 
 COPY Dockerfile *.patch /qemu-patches/

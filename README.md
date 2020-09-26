@@ -11,6 +11,7 @@ This is a fork of [tianon/docker-qemu](https://github.com/tianon/docker-qemu).
 
 Notable differences, beyond the automated build using GitLab CI:
 
+* Multi-arch build: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
 * Adds full support for RBD (CEPH) volumes - including libraries
 * Drops the `user` targets
 * Drops `xen` support
