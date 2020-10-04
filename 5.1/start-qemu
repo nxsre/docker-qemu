@@ -28,6 +28,12 @@
 
 _HOST_ARCH="$(uname -m)"
 _QEMU_ARCH=${QEMU_ARCH:-$_HOST_ARCH}
+
+case ${_QEMU_ARCH} in
+  "armv7l")
+    _QEMU_ARCH="arm"
+    ;;
+esac
 _QEMU="qemu-system-${_QEMU_ARCH}"
 
 _graceful_shutdown(){
@@ -106,6 +112,8 @@ _init_qemu(){
       _QEMU_NET_DEVICE='virtio-net-device'
       QEMU_MACHINE="${QEMU_MACHINE:-virt}"
       ;;
+    aarch64)
+      QEMU_MACHINE="${QEMU_MACHINE:-virt}"
   esac
 
   if [ -n "${QEMU_MACHINE:-}" ]; then
