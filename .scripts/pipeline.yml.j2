@@ -13,7 +13,7 @@ stages:
   - publish
 
 .init:
-  image: ixdotai/docker-buildx-qemu:latest
+  image: registry.gitlab.com/ix.ai/docker-buildx-qemu:latest
   services:
     - docker:dind
   before_script:
