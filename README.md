@@ -46,7 +46,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   --entrypoint "" \
-  ixdotai/qemu:latest \
+  registry.gitlab.com/ix.ai/qemu:latest \
     qemu-img create -f raw rbd:rbd/desktop:id=qemu 100G
 ```
 
@@ -57,7 +57,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   -v /docker/mini.iso:/tmp/mini.iso \
-  ixdotai/qemu:latest \
+  registry.gitlab.com/ix.ai/qemu:latest \
     -enable-kvm \
     -smp 4 \
     -m 8192 \
