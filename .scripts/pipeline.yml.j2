@@ -91,5 +91,5 @@ publish:{{ versions[version].version }}:
         --tag="${CI_REGISTRY_IMAGE}:latest" \
         --tag="${DOCKERHUB_IMAGE}:latest" \
 {%- endif %}
-        --push {{ versions[version].major }}.{{ versions[version].minor }}/
+        --push {{ versions[version].major }}.{{ versions[version].minor }}{% if versions[version].get('rc') %}-rc{% endif %}/
 {% endfor %}
