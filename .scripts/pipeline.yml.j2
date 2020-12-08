@@ -56,7 +56,7 @@ build:{{ versions[version].version }}:
         --cache-to=${CI_REGISTRY_IMAGE}:cache-${QEMU_BUILD_VERSION} \
         --tag "${CI_REGISTRY_IMAGE}:${TAG}" \
         --tag "${DOCKERHUB_IMAGE}:${TAG}" \
-        {{ versions[version].major }}.{{ versions[version].minor }}/
+        {{ versions[version].major }}.{{ versions[version].minor }}{% if versions[version].get('rc') %}-rc{% endif %}/
 {% endfor %}
 
 {%- for version in versions %}
