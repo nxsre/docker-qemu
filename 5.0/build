@@ -39,42 +39,55 @@ wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
 echo "deb https://download.ceph.com/debian-octopus $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list
 
 apt-get update
-apt-get install -y --no-install-recommends \
-  bzip2 \
-  gcc \
-  gnutls-dev \
-  libaio-dev \
-  libbz2-dev \
-  libc-dev \
-  libcap-dev \
-  libcap-ng-dev \
-  libcurl4-gnutls-dev \
-  libglib2.0-dev \
-  libiscsi-dev \
-  libjpeg-dev \
-  liblzo2-dev \
-  libncursesw5-dev \
-  libnfs-dev \
-  libnuma-dev \
-  libpixman-1-dev \
-  libpng-dev \
-  librbd-dev \
-  libseccomp-dev \
-  libspice-protocol-dev \
-  libspice-server-dev \
-  libssh-dev \
-  libusb-1.0-0-dev \
-  libusbredirparser-dev \
-  make \
-  pkg-config \
-  python \
-  tree \
-  xfslibs-dev \
+_packages=(
+  bzip2
+  gcc
+  gnutls-dev
+  libaio-dev
+  libbz2-dev
+  libc-dev
+  libcap-dev
+  libcap-ng-dev
+  libcurl4-gnutls-dev
+  libglib2.0-dev
+  libiscsi-dev
+  libjpeg-dev
+  liblzo2-dev
+  libncursesw5-dev
+  libnfs-dev
+  libnuma-dev
+  libpixman-1-dev
+  libpng-dev
+  librbd-dev
+  libseccomp-dev
+  libspice-protocol-dev
+  libspice-server-dev
+  libssh-dev
+  libusb-1.0-0-dev
+  libusbredirparser-dev
+  make
+  pkg-config
+  python3
+  tree
+  xfslibs-dev
   zlib1g-dev
+)
 
-if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then \
+if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.[0-1]\.).*"; then
+  # https://wiki.qemu.org/ChangeLog/5.2#Build_Information
+  _packages=(
+    "${_packages[@]}"
+    ninja-build
+    python3-setuptools
+  )
+fi
+
+apt-get install -y --no-install-recommends ${_packages[@]}
+
+if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then
   export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none"
 fi
+
 ./configure \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
@@ -155,6 +168,6 @@ rm -rf \
   /var/cache/* \
   /var/tmp/* \
   /var/log/*
- 
+
 # Basic test
 qemu-img --version
