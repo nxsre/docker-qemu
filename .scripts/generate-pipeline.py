@@ -50,7 +50,7 @@ for version in versions:
     versions[version]['major'] = version_list[0]
     versions[version]['minor'] = version_list[1]
     versions[version]['patch'] = version_list[2]
-    if int(''.join(version.split('.'))) > int(''.join(latest.split('.'))):
+    if '-rc' not in version and int(''.join(version.split('.'))) > int(''.join(latest.split('.'))):
         latest = version
 
 versions[latest]['latest'] = True
