@@ -11,8 +11,8 @@ LABEL maintainer="docker@ix.ai" \
 # https://wiki.qemu.org/SecurityProcess
 # Michael Roth
 ENV QEMU_KEYS="CEACC9E15534EBABB82D3FA03353C9CEF108B584" \
-		QEMU_BUILD_VERSION="5.2.0-rc4" \
-		QEMU_URL="https://download.qemu.org/qemu-5.2.0-rc4.tar.xz"
+		QEMU_BUILD_VERSION="5.2.0" \
+		QEMU_URL="https://download.qemu.org/qemu-5.2.0.tar.xz"
 
 COPY Dockerfile *.patch /qemu-patches/
 
