@@ -88,6 +88,10 @@ if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then
   export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none"
 fi
 
+if echo "${QEMU_BUILD_VERSION}" | grep -E "^(4|5)\..*"; then
+  export CONFIGURE_EXTRA_OPTIONS=" --disable-git-update"
+fi
+
 ./configure \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
@@ -95,7 +99,6 @@ fi
     mips64-softmmu mips64el-softmmu ppc64-softmmu sparc64-softmmu \
   " \
   --disable-docs \
-  --disable-git-update \
   --disable-gtk \
   --disable-pvrdma \
   --disable-qed \
