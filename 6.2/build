@@ -92,6 +92,10 @@ if echo "${QEMU_BUILD_VERSION}" | grep -E "^(4|5)\..*"; then
   export CONFIGURE_EXTRA_OPTIONS=" --disable-git-update"
 fi
 
+if echo "${QEMU_BUILD_VERSION}" | grep -E "^6\..*"; then
+  export CONFIGURE_EXTRA_OPTIONS=" --enable-xfsctl"
+fi
+
 ./configure \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
@@ -136,7 +140,6 @@ fi
   --enable-vnc \
   --enable-vnc-jpeg \
   --enable-vnc-png \
-  --enable-xfsctl \
   ${CONFIGURE_EXTRA_OPTIONS:-}
 
 make -j "$(nproc)"
