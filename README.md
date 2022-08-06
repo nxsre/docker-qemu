@@ -20,10 +20,10 @@ Notable differences, beyond the automated build using GitLab CI:
 
 ## Supported tags
 
-* `v0.0.1-4.1.1`, `v0.0.1-4.1`, `4.1.1`, `4.1`
-* `v0.0.1-4.2.1`, `v0.0.1-4.2`, `4.2.1`, `4.2`
-* `v0.0.1-5.0.1`, `v0.0.1-5.0`, `5.0.1`, `5.0`
-* `v0.0.1-5.1.0`, `v0.0.1-5.1`, `5.1.0`, `5.1`, `v0.0.1`, `latest`
+**NOTE**: Due to a [change in the GitLab storage usage](https://docs.gitlab.com/ee/user/usage_quotas.html), I have decided to discard all other tags from the GitLab Registry. The historical tags can still be found on docker hub.
+
+* `6.2`
+* `7.0`, `latest`
 
 The simple `N.N.N` tags refer to the QEMU versions.
 
