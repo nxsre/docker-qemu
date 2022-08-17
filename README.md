@@ -20,7 +20,7 @@ Notable differences, beyond the automated build using GitLab CI:
 
 ## Supported tags
 
-**NOTE**: Due to a [change in the GitLab storage usage](https://docs.gitlab.com/ee/user/usage_quotas.html), I have decided to discard all other tags from the GitLab Registry. The historical tags can still be found on docker hub.
+**NOTE**: Due to a [change in the GitLab storage usage](https://docs.gitlab.com/ee/user/usage_quotas.html), I have decided to drop the GitLab Registry for this image.
 
 * `6.2`
 * `7.0`, `latest`
@@ -29,10 +29,7 @@ The simple `N.N.N` tags refer to the QEMU versions.
 
 ## Usage
 
-This image is hosted on registry.gitlab.com and on docker hub:
-```
-registry.gitlab.com/ix.ai/docker-qemu:latest
-```
+This image is hosted on docker hub:
 
 ```
 ixdotai/qemu:latest
@@ -46,7 +43,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   --entrypoint "" \
-  registry.gitlab.com/ix.ai/qemu:latest \
+  ixdotai/qemu:latest \
     qemu-img create -f raw rbd:rbd/desktop:id=qemu 100G
 ```
 
@@ -57,7 +54,7 @@ sudo docker run --rm -it \
   -v /etc/ceph/ceph.conf:/etc/ceph/ceph.conf:ro \
   -v /etc/ceph/ceph.client.qemu.keyring:/etc/ceph/ceph.client.qemu.keyring:ro \
   -v /docker/mini.iso:/tmp/mini.iso \
-  registry.gitlab.com/ix.ai/qemu:latest \
+  ixdotai/qemu:latest \
     -enable-kvm \
     -smp 4 \
     -m 8192 \
