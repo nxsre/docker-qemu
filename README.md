@@ -20,10 +20,8 @@ Notable differences, beyond the automated build using GitLab CI:
 
 ## Supported tags
 
-**NOTE**: Due to a [change in the GitLab storage usage](https://docs.gitlab.com/ee/user/usage_quotas.html), I have decided to drop the GitLab Registry for this image.
-
-* `6.2`
-* `7.0`, `latest`
+* `7.1`
+* `7.2`, `latest`
 
 The simple `N.N.N` tags refer to the QEMU versions.
 
