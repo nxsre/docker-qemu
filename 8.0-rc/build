@@ -96,6 +96,10 @@ if echo "${QEMU_BUILD_VERSION}" | grep -E "^6\..*"; then
   export CONFIGURE_EXTRA_OPTIONS=" --enable-xfsctl"
 fi
 
+if echo "${QEMU_BUILD_VERSION}" | grep -E "^7\..*"; then
+  export CONFIGURE_EXTRA_OPTIONS=" --enable-slirp"
+fi
+
 ./configure \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
@@ -135,11 +139,10 @@ fi
   --enable-usb-redir \
   --enable-vhost-net \
   --enable-vhost-user \
-  --enable-vhost-vsock \
+  --enable-vhost-vdpa \
   --enable-virtfs \
   --enable-vnc \
   --enable-vnc-jpeg \
-  --enable-vnc-png \
   ${CONFIGURE_EXTRA_OPTIONS:-}
 
 make -j "$(nproc)"
