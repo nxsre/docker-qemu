@@ -96,10 +96,6 @@ if echo "${QEMU_BUILD_VERSION}" | grep -E "^6\..*"; then
   export CONFIGURE_EXTRA_OPTIONS=" --enable-xfsctl"
 fi
 
-if echo "${QEMU_BUILD_VERSION}" | grep -E "^7\..*"; then
-  export CONFIGURE_EXTRA_OPTIONS=" --enable-slirp"
-fi
-
 ./configure \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
