@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 generate-pipeline.py
 
-generates a pipeline yaml file based on `generated-pipeline.yml.j2`
+generates a pipeline yaml file based on `pipeline.yml.j2`
 """
 
 import argparse
@@ -17,7 +17,7 @@ parser.add_argument(
     default="linux/amd64",
     dest="target_platform",
     help=(
-        'comma separated list of target platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6 '
+        'comma separated list of target platforms: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386'
         '(default: linux/amd64)'
     ),
 )
@@ -55,8 +55,44 @@ for version in versions:
     elif int(''.join(version.split('.'))) > int(''.join(latest.split('.'))):
         latest = version
 
+platforms = {
+    'linux/amd64': {
+        'short_name': 'amd64',
+        'build-arg': 'opts=GOARCH=amd64',
+    },
+    'linux/arm64/v8': {
+        'short_name': 'arm64',
+        'build-arg': 'opts=GOARCH=arm64',
+    },
+    'linux/arm/v7': {
+        'short_name': 'armv7',
+        'build-arg': 'opts=GOARCH=arm GOARM=7',
+    },
+    'linux/arm/v6': {
+        'short_name': 'armv6',
+        'build-arg': 'opts=GOARCH=arm GOARM=6',
+    },
+    'linux/386': {
+        'short_name': '386',
+        'build-arg': 'opts=GOARCH=386',
+    },
+}
+
+enabled_platforms = []
+
+target_platforms = args.target_platform.split(',')
+
+for target_platform in target_platforms:
+    enabled_platforms.append({
+        'long_name': target_platform,
+        'short_name': platforms[target_platform]['short_name'],
+        'build-arg': platforms[target_platform]['build-arg'],
+    })
+
 versions[latest]['latest'] = True
 
-template = Template(args.template_file.read()).render(versions=versions, target_platform=args.target_platform)
-
-print(template)
+print(Template(args.template_file.read()).render(
+    versions=versions,
+    enabled_platforms=enabled_platforms,
+    args_target_platforms=args.target_platform
+))

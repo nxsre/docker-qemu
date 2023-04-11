@@ -1,0 +1,12 @@
+image: {{ image }}:{{ version.current }}
+manifests:
+{%- for platform in platforms %}
+  -
+    image: {{ image }}:{{ version.current }}-{{ platform['architecture'] }}{% if platform.get('tag-variant') %}{{ platform['variant'] }}{% endif %}
+    platform:
+      architecture: {{ platform['architecture'] }}
+      os: {{ platform['os'] }}
+{%- if platform.get('variant') %}
+      variant: {{ platform['variant'] }}
+{%- endif %}
+{%- endfor %}

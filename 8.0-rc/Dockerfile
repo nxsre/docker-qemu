@@ -4,15 +4,15 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:buster-slim
+FROM debian:stable-slim
 LABEL maintainer="docker@ix.ai" \
       ai.ix.repository="ix.ai/docker-qemu"
 
 # https://wiki.qemu.org/SecurityProcess
 # Michael Roth
 ENV QEMU_KEYS="CEACC9E15534EBABB82D3FA03353C9CEF108B584" \
-		QEMU_BUILD_VERSION="8.0.0-rc2" \
-		QEMU_URL="https://download.qemu.org/qemu-8.0.0-rc2.tar.xz"
+		QEMU_BUILD_VERSION="8.0.0-rc3" \
+		QEMU_URL="https://download.qemu.org/qemu-8.0.0-rc3.tar.xz"
 
 COPY Dockerfile *.patch /qemu-patches/
 

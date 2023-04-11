@@ -1,45 +1,14 @@
 #!/usr/bin/env bash
 
-set -eux
+set -Eeuxo pipefail
 
 export DEBIAN_FRONTEND="noninteractive"
-export GNUPGHOME="$(mktemp -d)"
+GNUPGHOME="$(mktemp -d)"
+export GNUPGHOME="${GNUPGHOME}"
 
-TARBALL="/$(basename ${QEMU_URL})"
-SAVED_APT_MARK="$(apt-mark showmanual)"
+TARBALL="/$(basename "${QEMU_URL}")"
 
-apt-get update
-apt-get install -y --no-install-recommends \
-  ca-certificates \
-  gnupg dirmngr \
-  wget \
-  xz-utils \
-  apt-transport-https \
-  software-properties-common \
-  patch \
-
-wget -O "${TARBALL}.sig" "${QEMU_URL}.sig"
-wget -O "${TARBALL}" "${QEMU_URL}" --progress=dot:giga
-
-for key in $QEMU_KEYS; do
-  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"
-done
-
-gpg --batch --verify "${TARBALL}.sig" "${TARBALL}"
-
-gpgconf --kill all
-rm -rf "${GNUPGHOME}"
-
-mkdir -p /usr/src/qemu
-cd /usr/src/qemu
-tar -xf "${TARBALL}" -C . --strip-components=1
-find /qemu-patches -name '*.patch' -type f -exec patch --strip 1 --input {} ';'
-
-wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
-echo "deb https://download.ceph.com/debian-octopus $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list
-
-apt-get update
-_packages=(
+declare -a _packages=(
   bzip2
   gcc
   gnutls-dev
@@ -50,6 +19,7 @@ _packages=(
   libcap-ng-dev
   libcurl4-gnutls-dev
   libglib2.0-dev
+  libfuse3-dev
   libiscsi-dev
   libjpeg-dev
   liblzo2-dev
@@ -66,6 +36,7 @@ _packages=(
   libusb-1.0-0-dev
   libusbredirparser-dev
   make
+  ninja-build
   pkg-config
   python3
   tree
@@ -73,30 +44,57 @@ _packages=(
   zlib1g-dev
 )
 
-if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.[0-1]\.).*"; then
-  # https://wiki.qemu.org/ChangeLog/5.2#Build_Information
-  _packages=(
-    "${_packages[@]}"
-    ninja-build
-    python3-setuptools
+declare -a CONFIGURE_EXTRA_OPTIONS
+
+if echo "${QEMU_BUILD_VERSION}" | grep -vE "^7\.[0-1]\..*"; then
+  # https://wiki.qemu.org/ChangeLog/7.2#Removal_of_the_.22slirp.22_submodule_.28affects_.22-netdev_user.22.29
+  _packages+=(
+    libslirp-dev
   )
+  CONFIGURE_EXTRA_OPTIONS+=("--enable-slirp")
 fi
 
-apt-get install -y --no-install-recommends ${_packages[@]}
+SAVED_APT_MARK="$(apt-mark showmanual)"
 
-if echo "${QEMU_BUILD_VERSION}" | grep -vE "^(4\.|5\.0\.).*"; then
-  export CONFIGURE_EXTRA_OPTIONS=" --enable-rng-none"
-fi
+# Install the needed packages
+apt-get update
+apt-get install -y --no-install-recommends \
+  ca-certificates \
+  gnupg dirmngr \
+  wget \
+  xz-utils \
+  apt-transport-https \
+  software-properties-common \
+  patch \
 
-if echo "${QEMU_BUILD_VERSION}" | grep -E "^(4|5)\..*"; then
-  export CONFIGURE_EXTRA_OPTIONS=" --disable-git-update"
-fi
+# Install the CEPH repository
+wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
+echo "deb https://download.ceph.com/debian-quincy $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list
 
-if echo "${QEMU_BUILD_VERSION}" | grep -E "^6\..*"; then
-  export CONFIGURE_EXTRA_OPTIONS=" --enable-xfsctl"
-fi
+# Install the remaining packaged
+apt-get update
+apt-get install -y --no-install-recommends "${_packages[@]}"
+
+# Download QEMU
+wget -O "${TARBALL}.sig" "${QEMU_URL}.sig"
+wget -O "${TARBALL}" "${QEMU_URL}" --progress=dot:giga
+
+for key in $QEMU_KEYS; do
+  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"
+done
+gpg --batch --verify "${TARBALL}.sig" "${TARBALL}"
+gpgconf --kill all
+# Cleanup gpg
+rm -rf "${GNUPGHOME}"
+
+# Extract QEMU, apply any patches there might be, compile it
+mkdir -p /usr/src/qemu
+cd /usr/src/qemu
+tar -xf "${TARBALL}" -C . --strip-components=1
+find /qemu-patches -name '*.patch' -type f -exec patch --strip 1 --input {} ';'
 
 ./configure \
+  --with-pkgversion='https://gitlab.com/ix.ai/docker-qemu' \
   --extra-cflags="-O2 -pipe -fomit-frame-pointer" \
   --target-list=" \
     i386-softmmu x86_64-softmmu aarch64-softmmu arm-softmmu \
@@ -115,6 +113,7 @@ fi
   --enable-curl \
   --enable-curses \
   --enable-fdt \
+  --enable-fuse \
   --enable-gnutls \
   --enable-guest-agent \
   --enable-kvm \
@@ -139,13 +138,14 @@ fi
   --enable-virtfs \
   --enable-vnc \
   --enable-vnc-jpeg \
-  ${CONFIGURE_EXTRA_OPTIONS:-}
+  "${CONFIGURE_EXTRA_OPTIONS[@]}"
 
 make -j "$(nproc)"
 make install
 
+# Prepare the general cleanup
 apt-mark auto '.*' > /dev/null
-[ -z "$SAVED_APT_MARK" ] || apt-mark manual $SAVED_APT_MARK > /dev/null
+[ -z "$SAVED_APT_MARK" ] || apt-mark manual "${SAVED_APT_MARK}" > /dev/null
 find /usr/local \
   -type f \
   \( -executable -o -name '*.so' \) \
@@ -158,15 +158,17 @@ find /usr/local \
     | cut -d: -f1 \
     | xargs -r apt-mark manual
 
+# Ensure these packages are installed
 apt-get install -y --no-install-recommends \
   ovmf \
   netcat
- 
-apt-get purge -y --auto-remove
+
+# General cleanup
+apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
 rm -rf \
   /usr/src/qemu \
-  ${TARBALL} \
-  ${TARBALL}.sig \
+  "${TARBALL}" \
+  "${TARBALL}.sig" \
   /qemu-patches \
   /var/lib/apt/lists/* \
   /tmp/* \

@@ -1,6 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay2
-  TARGET_PLATFORM: linux/amd64,linux/arm64,linux/arm/v7
+  TARGET_PLATFORM: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/386
 # Docker Hub
   DOCKERHUB_REPO_NAME: 'qemu'
 

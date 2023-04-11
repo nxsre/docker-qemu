@@ -7,16 +7,12 @@
 
 # ix.ai/docker-qemu
 
-This is a fork of [tianon/docker-qemu](https://github.com/tianon/docker-qemu).
+Notable features, beyond the automated build using GitLab CI:
 
-Notable differences, beyond the automated build using GitLab CI:
-
-* Multi-arch build: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
-* Adds full support for RBD (CEPH) volumes - including libraries
-* Drops the `user` targets
-* Drops `xen` support
-* Enables `rng-none` for QEMU >=5.1
-* Drops the signal patches, using QMP to gracefully shut down the VM on container stop (with `system_powerdown`)
+* Multi-arch build: `linux/amd64`, `linux/arm64`, `linux/arm/v7`, `linux/386`
+* Full support for RBD (CEPH) volumes - including libraries
+* Enabled `rng-none`
+* No additional signal patches needed, by using QMP to gracefully shut down the VM on container stop (with `system_powerdown`)
 
 ## Supported tags
 
@@ -27,13 +23,15 @@ The simple `N.N.N` tags refer to the QEMU versions.
 
 ## Usage
 
-This image is hosted on docker hub:
+This image is hosted on docker hub and gitlab registry:
 
 ```
 ixdotai/qemu:latest
+registry.gitlab.com/ix.ai/docker-qemu:latest
 ```
 
 ### Examples
+
 Create a new RBD volume:
 
 ```sh
@@ -46,6 +44,7 @@ sudo docker run --rm -it \
 ```
 
 Start an image with an RBD volume, boot from the ISO:
+
 ```sh
 sudo docker run --rm -it \
   --device /dev/kvm \
@@ -72,6 +71,7 @@ sudo docker run --rm -it \
 ```
 
 ## Global Variables
+
 The following variables are supported for all operations type:
 
 | **Variable**             | **Default**           | **Description**                                 |
@@ -80,10 +80,14 @@ The following variables are supported for all operations type:
 | `QEMU_MONPORT`           | `7100`                | The port for the QMP Monitor |
 | `QEMU_POWERDOWN_TIMEOUT` | `120`                 | After this many seconds, the VM gets killed after a graceful shutdown command |
 | `QEMU_ARCH`              | output of `uname -m`  | Allows starting the VM with a different arch than the host. Supported: `i386`, `x86_64`, `aarch64`, `arm`, `mips64`, `mips64el`, `ppc64`, `sparc64` |
+| `DEBUG_SCRIPT`           | `false`               | Set this to `true`, to have all de debug log of the script controlling the container. **WARNING!** This will generate a few log lines per second! |
 
 ## Tips
+
 ### Variable inside the VMs
+
 To add a string from outside the VM to be visible inside (for example, a host id), I'm using:
+
 ```
 -smbios type=1,serial=alpine
 ```
@@ -93,16 +97,19 @@ I'm then reading this inside the VM with `dmidecode --string system-serial-numbe
 For more details, see this [gist](https://gist.github.com/smoser/290f74c256c89cb3f3bd434a27b9f64c).
 
 ### Mount a volume from the docker host inside the VM
+
 This is only possible by exposing a FAT drive.
 
 Let's say the volume on the docker host is `/files`.
 
 You need to add the following to the `docker run` command:
+
 ```
   -v /files:/files:rw \
 ```
 
 And in the VM command:
+
 ```
     -drive file=fat:rw:/folder,id=drive2,if=none,format=raw \
     -device driver=scsi-hd,drive=drive2 \
@@ -112,14 +119,16 @@ When you start your VM, you will see an additional drive - if you add it after t
 
 ---
 
-Support for the original `start-qemu` script is still included, from [tianon/docker-qemu](https://github.com/tianon/docker-qemu). If no arguments are
+## Fork
+
+This is a fork of [tianon/docker-qemu](https://github.com/tianon/docker-qemu).
+
+Support for the original `start-qemu` script was still included at the time of the fork, from [tianon/docker-qemu](https://github.com/tianon/docker-qemu). If no arguments are
 passed to the image, then the environment variables documented in [start-qemu](start-qemu) are used.
 
-___
+### Original README content below
 
-Original README content below:
-
-# tianon/qemu
+#### tianon/qemu
 
 	touch /home/jsmith/hda.qcow2
 	docker run -it --rm \
