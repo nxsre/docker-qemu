@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+set -Eeuo pipefail
+
+DEBUG_SCRIPT="${DEBUG_SCRIPT:-false}"
+[ "${DEBUG_SCRIPT}" == "true" ] && set -x
+
 # This script is inspired by the `start-qemu` script by @tianon:
 # https://github.com/tianon/docker-qemu/blob/4597614c0012b3c026171135b035ec7bec21f38e/start-qemu
 
@@ -29,6 +34,9 @@
 _HOST_ARCH="$(uname -m)"
 _QEMU_ARCH=${QEMU_ARCH:-$_HOST_ARCH}
 
+_QEMU_SHUTDOWN_COUNTER=/run/qemu.counter
+_QEMU_PID=/run/qemu.pid
+
 case ${_QEMU_ARCH} in
   "armv7l")
     _QEMU_ARCH="arm"
@@ -37,24 +45,35 @@ esac
 _QEMU="qemu-system-${_QEMU_ARCH}"
 
 _graceful_shutdown(){
+  echo "Trapped: $1"
   local QEMU_MONPORT="${QEMU_MONPORT:-7100}"
   local QEMU_POWERDOWN_TIMEOUT="${QEMU_POWERDOWN_TIMEOUT:-120}"
-  local COUNT=0
+  echo 0 > "${_QEMU_SHUTDOWN_COUNTER}"
 
   echo "Trying to shut down the VM gracefully"
-  echo 'system_powerdown' | nc -q 1 localhost ${QEMU_MONPORT}>/dev/null 2>&1
-  echo ""
-  while echo 'info version'|nc -q 1 localhost ${QEMU_MONPORT:-7100}>/dev/null 2>&1 && [ "${COUNT}" -lt "${QEMU_POWERDOWN_TIMEOUT}" ]; do
-    let COUNT++
-    echo "QEMU still running. Retrying... (${COUNT}/${QEMU_POWERDOWN_TIMEOUT})"
-    sleep 1
+  echo 'system_powerdown' | nc -q 1 -w 1 localhost "${QEMU_MONPORT}">/dev/null || return
+  while [ "$(cat ${_QEMU_SHUTDOWN_COUNTER})" -lt "${QEMU_POWERDOWN_TIMEOUT}" ]; do
+    # Increase the counter
+    echo $(($(cat ${_QEMU_SHUTDOWN_COUNTER})+1)) > ${_QEMU_SHUTDOWN_COUNTER}
+    # Check if the process still exists
+    if [ -d "/proc/$(cat ${_QEMU_PID})" ]; then
+      echo "QEMU still running. Waiting... ($(cat ${_QEMU_SHUTDOWN_COUNTER})/${QEMU_POWERDOWN_TIMEOUT})"
+      sleep 1
+    fi
   done
+  echo "Killing the VM"
+  echo 'quit' | nc -q 1 -w 1 localhost "${QEMU_MONPORT}">/dev/null || true
+  return
+}
 
-  if echo 'info version'|nc -q 1 localhost ${QEMU_MONPORT:-7100}>/dev/null 2>&1; then
-    echo "Killing the VM"
-    echo 'quit' | nc -q 1 localhost ${QEMU_MONPORT}>/dev/null 2>&1 || true
-  fi
-  echo "Exiting..."
+# Allows for troubleshooting signals sent to the process
+# https://stackoverflow.com/a/9256709
+_trap(){
+    func="$1" ; shift
+    for sig ; do
+        # shellcheck disable=SC2064
+        trap "$func $sig" "$sig"
+    done
 }
 
 # In case no CLI arguments were passed to the script, this function puts together some defaults
@@ -126,7 +145,7 @@ _init_qemu(){
     -netdev "$_NET_ARG,id=net"
     -device "$_QEMU_NET_DEVICE,netdev=net"
   )
-  
+
   if [ -n "${QEMU_CDROM:-}" ]; then
     _QEMU_ARGS+=( -cdrom "$QEMU_CDROM" )
   fi
@@ -157,13 +176,27 @@ if [ -n "${QEMU_NO_QMP:-}" ]; then
   echo >&2 'warning: QEMU_NO_QMP is set'
   echo >&2 '  issuing "docker stop" will KILL the VM'
   echo >&2
-  sleep 3
+  sleep 30
 else
-  trap _graceful_shutdown SIGINT SIGTERM SIGHUP
+  _trap _graceful_shutdown SIGTERM SIGHUP SIGINT SIGABRT SIGQUIT
   _CLI_ARGS="${_CLI_ARGS} -monitor telnet:localhost:${QEMU_MONPORT:-7100},server,nowait,nodelay"
 fi
 
-set -x
-$_QEMU ${_CLI_ARGS} &
-set +x
-wait $!
+set -m
+(
+  # Disable all the signals sent to the process
+  # shellcheck disable=SC2064
+  for _SIGNAL in {1..64}; do trap "echo Caught trap ${_SIGNAL} for the QEMU process" "${_SIGNAL}"; done
+  set -x
+  $_QEMU ${_CLI_ARGS} & echo $! > ${_QEMU_PID}
+  set +x
+)
+set +m
+[ "${DEBUG_SCRIPT}" == "true" ] && set -x
+
+# Since we have to start the process with -m, we need to poll every intervall if it's still running
+while [ -d "/proc/$(cat ${_QEMU_PID})"  ]; do
+  sleep 1
+done
+
+
