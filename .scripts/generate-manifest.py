@@ -74,11 +74,13 @@ available_platforms = {
         'architecture': 'amd64',
         'os': 'linux',
         'variant': False,
+        'tag-variant': False,
     },
     'linux/arm64/v8': {
         'architecture': 'arm64',
         'os': 'linux',
         'variant': 'v8',
+        'tag-variant': False,
     },
     'linux/arm/v7': {
         'architecture': 'arm',
@@ -96,6 +98,7 @@ available_platforms = {
         'architecture': '386',
         'os': 'linux',
         'variant': False,
+        'tag-variant': False,
     },
 }
 
@@ -103,11 +106,6 @@ platforms = []
 enabled_platforms = args.enabled_platforms.split(',')
 
 for platform in enabled_platforms:
-    platforms.append({
-        'name': platform,
-        'architecture': available_platforms[platform]['architecture'],
-        'os': available_platforms[platform]['os'],
-        'variant': available_platforms[platform]['variant'],
-    })
+    platforms.append({**available_platforms[platform], 'name': platform })
 
 print(Template(args.template_file.read()).render(version=version, platforms=platforms, image=args.image))
