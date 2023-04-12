@@ -59,6 +59,7 @@ workflow:
     - .tags
   image:
     name: python:alpine
+  retry: 2
   environment:
     name: production
   before_script:
