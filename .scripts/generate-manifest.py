@@ -51,23 +51,38 @@ parser.add_argument(
     dest="image",
     help='(default: ixdotai/qemu)',
 )
+parser.add_argument(
+    '-d',
+    '--development-build',
+    dest="dev",
+    action='store_true',
+    help=(
+        'Set this flag to prepend `dev-` to all image tags'
+        '(default: false)'
+    ),
+)
 args = parser.parse_args()
 
 with args.versions_file as stored_versions:
     enabled_versions = json.load(stored_versions)
 
 latest = "0.0"
-version = {'current': args.current_version, 'latest': False}
+version = {'current': args.current_version, 'latest': False, 'list': []}
 
 for enabled_version in enabled_versions:
     if (not '-rc' in enabled_version) and (int(''.join(enabled_version.split('.'))) > int(''.join(latest.split('.')))):
         latest = str(enabled_version)
 
 if latest == args.current_version:
-    version['latest'] = True
+    version['current'] = 'latest'
+    version['list'].append(f'dev-{latest}' if args.dev else latest)
 
-#for enabled_version in enabled_versions:
-#    if current_version ==
+current_version = enabled_versions[args.current_version]['version']
+if args.dev:
+    current_version = f'dev-{current_version}'
+    version['current'] = f"dev-{version['current']}"
+
+version['list'].append(current_version)
 
 available_platforms = {
     'linux/amd64': {

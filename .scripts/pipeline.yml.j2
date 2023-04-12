@@ -1,13 +1,19 @@
 ---
 variables:
-  DOCKER_DRIVER: overlay2
   GITHUB_STATUS_ENABLE: 'true'
   ENABLE_CACHE: 'true'
   ENABLE_GITLAB_REGISTRY: 'true'
+  MANIFEST_TOOL_VERSION: '2.0.8'
+  DEBIAN_FRONTEND: "noninteractive"
+  TERM: 'linux'
 
 stages:
   - build
   - release
+
+workflow:
+  rules:
+    - when: always
 
 .tags:
   tags:
@@ -21,10 +27,6 @@ stages:
     name: gcr.io/kaniko-project/executor:v1.9.1-debug
     entrypoint: [""]
   retry: 2
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: never
-    - when: on_success
   interruptible: true
   script:
     - set -ex
@@ -40,10 +42,8 @@ stages:
       fi
     - |
       if [ "${ENABLE_CACHE}" == "true" ]; then \
-        if [ -n "${DOCKERHUB_REPO_NAME}" ] && [ -n "${DOCKERHUB_PASSWORD}" ]; then \
-          export KANIKO_ARGS="${KANIKO_ARGS} --cache"; \
-          export KANIKO_ARGS="${KANIKO_ARGS} --cache-repo ${DOCKERHUB_REPO_PREFIX}/${DOCKERHUB_REPO_NAME}-cache-${QEMU_SHORT_VERSION}"; \
-        fi; \
+        export KANIKO_ARGS="${KANIKO_ARGS} --cache"; \
+        export KANIKO_ARGS="${KANIKO_ARGS} --cache-repo ${CI_REGISTRY_IMAGE}"; \
       fi
     - export KANIKO_ARGS="${KANIKO_ARGS} --build-arg CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME}"
     - export KANIKO_ARGS="${KANIKO_ARGS} --build-arg CI_PIPELINE_ID=${CI_PIPELINE_ID}"
@@ -55,18 +55,16 @@ stages:
 
 .release-template:
   stage: release
+  extends:
+    - .tags
   image:
     name: python:alpine
-  when: on_success
   environment:
     name: production
-  variables:
-    DEBIAN_FRONTEND: "noninteractive"
-    TERM: 'linux'
   before_script:
     - pip install Jinja2
     - apk add curl coreutils
-    - curl -sSL https://github.com/estesp/manifest-tool/releases/download/v2.0.5/binaries-manifest-tool-2.0.5.tar.gz | tar -xz -C /usr/local/bin
+    - curl -sSL https://github.com/estesp/manifest-tool/releases/download/v${MANIFEST_TOOL_VERSION}/binaries-manifest-tool-${MANIFEST_TOOL_VERSION}.tar.gz | tar -xz -C /usr/local/bin
     - .scripts/kaniko-init.sh
 
 {% for version in versions %}
@@ -85,21 +83,22 @@ build:{{ versions[version].version }}:{{ enabled_platform['short_name'] }}:
 
 release:{{ versions[version].version }}:
   extends:
-    - .tags
     - .release-template
+  variables:
+    TAG: "{{ versions[version].major }}.{{ versions[version].minor }}{% if versions[version].get('rc') %}-rc{% endif %}"
   script:
-    - export TAG="{{ versions[version].major }}.{{ versions[version].minor }}"
-    - if [ "${CI_COMMIT_REF_NAME}" != "${CI_DEFAULT_BRANCH}" ]; then export TAG="dev-${TAG}"; fi
+    - export ADDITIONAL_ARGUMENTS=""
+    - if [ "${CI_COMMIT_REF_NAME}" != "${CI_DEFAULT_BRANCH}" ]; then export ADDITIONAL_ARGUMENTS='-d'; fi
     - |
       if [ "${ENABLE_GITLAB_REGISTRY}" = "true" ]; then \
         set -x; \
-        .scripts/generate-manifest.py -c ${TAG} -i ${CI_REGISTRY_IMAGE} -e '{{ args_target_platforms }}' > registry_gitlab.yml; \
+        .scripts/generate-manifest.py ${ADDITIONAL_ARGUMENTS} -c ${TAG} -i ${CI_REGISTRY_IMAGE} -e '{{ args_target_platforms }}' > registry_gitlab.yml; \
         set +x; \
       fi
     - |
       if [ -n "${DOCKERHUB_REPO_NAME}" ] && [ -n "${DOCKERHUB_PASSWORD}" ]; then \
         set -x; \
-        .scripts/generate-manifest.py -c ${TAG} -i ${DOCKERHUB_REPO_PREFIX}/${DOCKERHUB_REPO_NAME} -e '{{ args_target_platforms }}' > registry_dockerhub.yml; \
+        .scripts/generate-manifest.py ${ADDITIONAL_ARGUMENTS} -c ${TAG} -i ${DOCKERHUB_REPO_PREFIX}/${DOCKERHUB_REPO_NAME} -e '{{ args_target_platforms }}' > registry_dockerhub.yml; \
         set +x; \
       fi
     - |
