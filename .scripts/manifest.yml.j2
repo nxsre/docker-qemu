@@ -1,9 +1,5 @@
-{%- if version.latest %}
-image: {{ image }}:latest
-tags: ['{{ version.current }}']
-{%- else %}
 image: {{ image }}:{{ version.current }}
-{%- endif %}
+tags: {{ version.list }}
 manifests:
 {%- for platform in platforms %}
   -

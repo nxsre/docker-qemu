@@ -1,6 +1,7 @@
 variables:
   DOCKER_DRIVER: overlay2
   TARGET_PLATFORM: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/386
+  FORCE_FULL_PIPELINE: 'false'
 # Docker Hub
   DOCKERHUB_REPO_NAME: 'qemu'
 
@@ -10,19 +11,31 @@ stages:
   - build
   - publish
 
+.default-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+    - if: $FORCE_FULL_PIPELINE == 'true'
+      when: on_success
+    - when: never
+
 check-git-status:
   stage: test
   image: alpine:latest
+  extends:
+    - .default-rules
   script:
-    - apk add --no-cache wget jq gawk bash git
+    - apk add wget jq gawk bash git
     - ./apply-templates.sh
     - if [ -n "$(git status --short)" ]; then echo "Templates not applied. Run './apply-templates.sh'. Exiting."; exit 1; fi
 
 generate-pipelines:
   stage: prepare
+  extends:
+    - .default-rules
   image: python:alpine
   script:
-    - pip install --no-cache-dir Jinja2
+    - pip install Jinja2
     - .scripts/generate-pipeline.py -p ${TARGET_PLATFORM} > generated-pipeline.yml
     - cat generated-pipeline.yml
   artifacts:
@@ -32,6 +45,8 @@ generate-pipelines:
 
 child-pipeline:
   stage: build
+  extends:
+    - .default-rules
   trigger:
     include:
       - artifact: generated-pipeline.yml
@@ -43,8 +58,9 @@ dockerhub:readme:
   variables:
     README_PATH: ${CI_PROJECT_DIR}/README.md
   rules:
-    - if: '$CI_COMMIT_REF_NAME == "master" && $DOCKERHUB_REPO_NAME =~ /.+/ && $DOCKERHUB_PASSWORD =~ /.+/'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $DOCKERHUB_REPO_NAME =~ /.+/ && $DOCKERHUB_PASSWORD =~ /.+/'
       when: on_success
+    - when: never
   image:
     name: sheogorath/readme-to-dockerhub:latest
     entrypoint: ['']
