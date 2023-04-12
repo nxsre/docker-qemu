@@ -69,13 +69,14 @@ with args.versions_file as stored_versions:
 latest = "0.0"
 version = {'current': args.current_version, 'latest': False, 'list': []}
 
+# Decide which version is the latest
 for enabled_version in enabled_versions:
     if (not '-rc' in enabled_version) and (int(''.join(enabled_version.split('.'))) > int(''.join(latest.split('.')))):
         latest = str(enabled_version)
 
+# Add `latest` to the list of built images
 if latest == args.current_version:
-    version['current'] = 'latest'
-    version['list'].append(f'dev-{latest}' if args.dev else latest)
+    version['list'].append(f"{'dev-' if args.dev else ''}latest")
 
 current_version = enabled_versions[args.current_version]['version']
 if args.dev:
