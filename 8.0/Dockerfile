@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:stable-slim
+FROM debian:bullseye-slim
 LABEL maintainer="docker@ix.ai" \
       ai.ix.repository="ix.ai/docker-qemu"
 

@@ -9,6 +9,7 @@ export GNUPGHOME="${GNUPGHOME}"
 TARBALL="/$(basename "${QEMU_URL}")"
 
 declare -a _packages=(
+  git
   bzip2
   gcc
   gnutls-dev
@@ -68,7 +69,7 @@ apt-get install -y --no-install-recommends \
   patch \
 
 # Install the CEPH repository
-wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
+wget --no-check-certificate -q -O- 'https://download.ceph.com/keys/release.asc'| gpg --dearmor > /etc/apt/trusted.gpg.d/ceph.gpg
 echo "deb https://download.ceph.com/debian-quincy $(lsb_release -cs) main" >/etc/apt/sources.list.d/ceph.list
 
 # Install the remaining packaged
@@ -76,21 +77,22 @@ apt-get update
 apt-get install -y --no-install-recommends "${_packages[@]}"
 
 # Download QEMU
-wget -O "${TARBALL}.sig" "${QEMU_URL}.sig"
-wget -O "${TARBALL}" "${QEMU_URL}" --progress=dot:giga
+#wget -O "${TARBALL}.sig" "${QEMU_URL}.sig"
+#wget -O "${TARBALL}" "${QEMU_URL}" --progress=dot:giga
+git clone -b v8.0.3 https://mirrors.tuna.tsinghua.edu.cn/git/qemu.git /usr/src/qemu
 
-for key in $QEMU_KEYS; do
-  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"
-done
-gpg --batch --verify "${TARBALL}.sig" "${TARBALL}"
-gpgconf --kill all
+#for key in $QEMU_KEYS; do
+#  gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"
+#done
+#gpg --batch --verify "${TARBALL}.sig" "${TARBALL}"
+#gpgconf --kill all
 # Cleanup gpg
-rm -rf "${GNUPGHOME}"
+#rm -rf "${GNUPGHOME}"
 
 # Extract QEMU, apply any patches there might be, compile it
-mkdir -p /usr/src/qemu
+#mkdir -p /usr/src/qemu
 cd /usr/src/qemu
-tar -xf "${TARBALL}" -C . --strip-components=1
+#tar -xf "${TARBALL}" -C . --strip-components=1
 find /qemu-patches -name '*.patch' -type f -exec patch --strip 1 --input {} ';'
 
 ./configure \
