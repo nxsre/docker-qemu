@@ -162,11 +162,34 @@ find /usr/local \
 
 # Ensure these packages are installed
 apt-get install -y --no-install-recommends \
+  ceph-common \
+  ceph-osd \
+  ceph-iscsi \
+  ceph-base \
+  ceph-mgr \
+  ceph-mgr-dashboard \
+  nfs-ganesha-ceph \
+  ceph-mon \
+  ceph-fuse \
+  libcephfs2 \
+  ceph-prometheus-alerts \
+  cephadm \
+  ceph-mgr-diskprediction-local \
+  ceph-mgr-rook \
+  cephfs-mirror \
+  python3-ceph-common \
+  ceph-volume \
+  ceph-immutable-object-cache \
+  ceph-mgr-k8sevents \
+  rbd-nbd \
+  kmod \
   ovmf \
   netcat
 
 # General cleanup
+export SUDO_FORCE_REMOVE=yes
 apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
+
 rm -rf \
   /usr/src/qemu \
   "${TARBALL}" \
